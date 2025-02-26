@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const verificarToken = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,7 +20,6 @@ mongoose
     .then(() => console.log('Conectado ao MongoDB'))
     .catch((err) => console.error('Erro ao conectar ao MongoDB:', err));
 
-    
 // Importar o arquivo de rotas
 const usuarioRoutes = require('./routes/usuarios'); // Ajuste o caminho conforme necessário
 
@@ -29,6 +29,15 @@ app.use('/usuarios', usuarioRoutes); // Todas as rotas de usuários estarão sob
 // Rota inicial
 app.get('/', (req, res) => {
     res.send('API de Usuários e Observações');
+});
+
+app.get('/usuarios', verificarToken, (req, res) => {
+    // Lógica para retornar a lista de usuários
+    const usuarios = [
+        { id: 1, nome: 'Usuário 1' },
+        { id: 2, nome: 'Usuário 2' },
+    ];
+    res.json(usuarios);
 });
 
 // Iniciar o servidor
