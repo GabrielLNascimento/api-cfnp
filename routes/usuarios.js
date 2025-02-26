@@ -1,10 +1,26 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const verificarToken = require('./middleware/auth'); // Importe o middleware
+require('dotenv').config();
+
 const Usuario = require('../models/Usuario');
 const Observacao = require('../models/Observacao');
 
-// Listar todos os usuários
-router.get('/', async (req, res) => {
+// Rota de login (pública)
+router.post('/login', async (req, res) => {
+    const { senha } = req.body;
+
+    if (senha === process.env.SENHA) {
+        const token = jwt.sign({}, process.env.JWT_SECRET, { expiresIn: '1h' });
+        return res.json({ token });
+    } else {
+        return res.status(401).json({ message: 'Senha incorreta' });
+    }
+});
+
+// Rotas protegidas
+router.get('/', verificarToken, async (req, res) => {
     try {
         const usuarios = await Usuario.find();
         res.json(usuarios);
@@ -13,8 +29,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Criar um novo usuário
-router.post('/', async (req, res) => {
+router.post('/', verificarToken, async (req, res) => {
     const usuario = new Usuario({
         nome: req.body.nome,
         cpf: req.body.cpf,
@@ -28,8 +43,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Buscar usuário pelo CPF
-router.get('/cpf/:cpf', async (req, res) => {
+router.get('/cpf/:cpf', verificarToken, async (req, res) => {
     try {
         const usuario = await Usuario.findOne({ cpf: req.params.cpf });
         if (!usuario) {
@@ -41,8 +55,7 @@ router.get('/cpf/:cpf', async (req, res) => {
     }
 });
 
-// Adicionar observação a um usuário pelo CPF
-router.post('/cpf/:cpf/observacoes', async (req, res) => {
+router.post('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
     try {
         const usuario = await Usuario.findOne({ cpf: req.params.cpf });
         if (!usuario) {
@@ -66,8 +79,7 @@ router.post('/cpf/:cpf/observacoes', async (req, res) => {
     }
 });
 
-// Listar observações de um usuário pelo CPF
-router.get('/cpf/:cpf/observacoes', async (req, res) => {
+router.get('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
     try {
         const usuario = await Usuario.findOne({ cpf: req.params.cpf });
         if (!usuario) {
@@ -81,8 +93,7 @@ router.get('/cpf/:cpf/observacoes', async (req, res) => {
     }
 });
 
-// Deletar um usuário e suas observações
-router.delete('/cpf/:cpf', async (req, res) => {
+router.delete('/cpf/:cpf', verificarToken, async (req, res) => {
     try {
         const cpf = req.params.cpf;
 
@@ -99,8 +110,7 @@ router.delete('/cpf/:cpf', async (req, res) => {
     }
 });
 
-// Rota para editar um usuário pelo CPF
-router.put('/cpf/:cpf', async (req, res) => {
+router.put('/cpf/:cpf', verificarToken, async (req, res) => {
     try {
         const cpfAntigo = req.params.cpf;
         const { nome, cpf: novoCpf } = req.body;
