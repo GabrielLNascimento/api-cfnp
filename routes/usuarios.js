@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const verificarToken = require('./middleware/auth'); // Importe o middleware
+const verificarToken = require('../middleware/auth'); // Importe o middleware
 require('dotenv').config();
 
 const Usuario = require('../models/Usuario');
