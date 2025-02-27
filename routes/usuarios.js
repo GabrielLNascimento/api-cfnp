@@ -112,6 +112,32 @@ router.delete('/cpf/:cpf', verificarToken, async (req, res) => {
     }
 });
 
+router.delete('/cpf/:cpf/observacoes/:id', verificarToken, async (req, res) => {
+    try {
+        const observacaoId = req.params.id;
+
+        // Verifica se a observação existe
+        const observacao = await Observacao.findById(observacaoId);
+        if (!observacao) {
+            return res
+                .status(404)
+                .json({ message: 'Observação não encontrada' });
+        }
+
+        // Remove a observação do banco de dados
+        await Observacao.findByIdAndDelete(observacaoId);
+
+        // Remove a referência da observação no usuário
+        await Usuario.findByIdAndUpdate(observacao.usuarioId, {
+            $pull: { observacoes: observacaoId },
+        });
+
+        res.json({ message: 'Observação deletada com sucesso' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.put('/cpf/:cpf', verificarToken, async (req, res) => {
     try {
         const cpfAntigo = req.params.cpf;
