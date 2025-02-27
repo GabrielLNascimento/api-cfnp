@@ -64,6 +64,8 @@ router.post('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
 
         const observacao = new Observacao({
             texto: req.body.texto,
+            data: req.body.data,
+            complemento: req.body.complemento,
             usuarioId: usuario._id,
         });
 

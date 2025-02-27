@@ -31,14 +31,6 @@ app.get('/', (req, res) => {
     res.send('API de Usuários e Observações');
 });
 
-app.get('/usuarios', verificarToken, (req, res) => {
-    // Lógica para retornar a lista de usuários
-    const usuarios = [
-        { id: 1, nome: 'Usuário 1' },
-        { id: 2, nome: 'Usuário 2' },
-    ];
-    res.json(usuarios);
-});
 
 // Iniciar o servidor
 app.listen(PORT, () => {
