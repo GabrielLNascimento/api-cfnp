@@ -8,7 +8,7 @@ const Usuario = require('../models/Usuario');
 const Observacao = require('../models/Observacao');
 
 // Rota de login (pública)
-router.post('/login', async (req, res) => { 
+router.post('/login', async (req, res) => {
     const { login, senha } = req.body;
 
     if (!login || !senha) {
@@ -22,7 +22,7 @@ router.post('/login', async (req, res) => {
     if (usuarios[login] && usuarios[login].senha === senha) {
         // Gera o token JWT com a role do usuário
         const token = jwt.sign(
-            { login, role: usuarios[login].role }, // Inclui a role no payload
+            { login, role: usuarios[login].role },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
@@ -68,29 +68,27 @@ router.get('/cpf/:cpf', verificarToken, async (req, res) => {
     }
 });
 
-router.post('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
+router.post('/cpf/:cpf/observacoes', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: 'Token não fornecido.' });
+    }
+
     try {
-        const usuario = await Usuario.findOne({ cpf: req.params.cpf });
-        if (!usuario) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
-        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const observacao = new Observacao({
-            texto: req.body.texto,
-            data: req.body.data,
-            complemento: req.body.complemento,
-            usuarioId: usuario._id,
-        });
+        // Adiciona o login do usuário logado ao payload da observação
+        const novaObservacao = {
+            ...req.body,
+            criadoPor: decoded.login,
+        };
 
-        const novaObservacao = await observacao.save();
-
-        await Usuario.findByIdAndUpdate(usuario._id, {
-            $push: { observacoes: novaObservacao._id },
-        });
-
-        res.status(201).json(novaObservacao);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+        // Salva a observação no banco de dados
+        const observacaoSalva = await Observacao.create(novaObservacao);
+        res.status(201).json(observacaoSalva);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao criar observação.' });
     }
 });
 
