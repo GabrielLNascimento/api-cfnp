@@ -9,13 +9,26 @@ const Observacao = require('../models/Observacao');
 
 // Rota de login (pública)
 router.post('/login', async (req, res) => {
-    const { senha } = req.body;
+    const { login, senha } = req.body;
 
-    if (senha === process.env.SENHA) {
-        const token = jwt.sign({}, process.env.JWT_SECRET, { expiresIn: '1h' });
+    if (!login || !senha) {
+        return res
+            .status(400)
+            .json({ message: 'Login e senha são obrigatórios.' });
+    }
+
+    // Lê o objeto de usuários do .env
+    const usuarios = JSON.parse(process.env.USUARIOS_AUTENTICACAO || '{}');
+
+    // Verifica se o login existe e se a senha está correta
+    if (usuarios[login] && usuarios[login] === senha) {
+        // Gera o token JWT
+        const token = jwt.sign({ login }, process.env.JWT_SECRET, {
+            expiresIn: '1h',
+        });
         return res.json({ token });
     } else {
-        return res.status(401).json({ message: 'Senha incorreta' });
+        return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 });
 
