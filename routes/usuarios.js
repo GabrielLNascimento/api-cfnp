@@ -11,24 +11,48 @@ const Observacao = require('../models/Observacao');
 router.post('/login', async (req, res) => {
     const { login, senha } = req.body;
 
-    if (!login || !senha) {
-        return res
-            .status(400)
-            .json({ message: 'Login e senha são obrigatórios.' });
+    // Validação de entrada
+    if (
+        !login ||
+        !senha ||
+        typeof login !== 'string' ||
+        typeof senha !== 'string'
+    ) {
+        return res.status(400).json({
+            message: 'Login e senha são obrigatórios e devem ser strings.',
+        });
     }
 
-    const usuarios = JSON.parse(process.env.USUARIOS_AUTENTICACAO || '{}');
+    try {
+        // Verifica se a variável de ambiente USUARIOS_AUTENTICACAO está definida
+        if (!process.env.USUARIOS_AUTENTICACAO) {
+            throw new Error('Configuração de usuários não encontrada.');
+        }
 
-    if (usuarios[login] && usuarios[login].senha === senha) {
-        // Gera o token JWT com a role do usuário
-        const token = jwt.sign(
-            { login, role: usuarios[login].role },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
-        return res.json({ token });
-    } else {
-        return res.status(401).json({ message: 'Credenciais inválidas.' });
+        // Converte a string JSON em um objeto
+        const usuarios = JSON.parse(process.env.USUARIOS_AUTENTICACAO);
+
+        // Verifica se o login existe
+        if (!usuarios[login]) {
+            return res.status(401).json({ message: 'Credenciais inválidas.' });
+        }
+
+        // Verifica se a senha está correta
+        if (usuarios[login].senha === senha) {
+            // Gera o token JWT com o login e a role do usuário
+            const token = jwt.sign(
+                { login, role: usuarios[login].role }, // Payload do token
+                process.env.JWT_SECRET, // Chave secreta
+                { expiresIn: '1h' } // Expiração do token
+            );
+
+            return res.status(200).json({ token });
+        } else {
+            return res.status(401).json({ message: 'Credenciais inválidas.' });
+        }
+    } catch (error) {
+        console.error('Erro no login:', error);
+        return res.status(500).json({ message: 'Erro interno no servidor.' });
     }
 });
 
@@ -76,21 +100,42 @@ router.post('/cpf/:cpf/observacoes', async (req, res) => {
     }
 
     try {
+        // Verifica e decodifica o token JWT
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Verifica se o login do usuário está presente no token
+        if (!decoded.login) {
+            return res
+                .status(400)
+                .json({ message: 'Login do usuário não encontrado no token.' });
+        }
 
         // Adiciona o login do usuário logado ao payload da observação
         const novaObservacao = {
             ...req.body,
-            criadoPor: decoded.login,
+            criadoPor: decoded.login, // Usa o login do token
         };
 
         // Salva a observação no banco de dados
         const observacaoSalva = await Observacao.create(novaObservacao);
+
+        // Retorna a observação salva com o campo criadoPor
         res.status(201).json(observacaoSalva);
     } catch (error) {
+        console.error('Erro ao criar observação:', error);
+
+        // Retorna mensagens de erro específicas com base no tipo de erro
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ message: 'Token inválido.' });
+        }
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expirado.' });
+        }
+
         res.status(500).json({ message: 'Erro ao criar observação.' });
     }
 });
+
 
 router.get('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
     try {
