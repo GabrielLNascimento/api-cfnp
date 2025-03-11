@@ -5,6 +5,7 @@ const ObservacaoSchema = new mongoose.Schema({
     data: { type: Date, default: Date.now }, 
     complemento: { type: String }, 
     usuarioId: { type: String, ref: 'Usuario', required: true },
+    criadoPor: { type: String, required: true }
 });
 
 module.exports = mongoose.model('Observacao', ObservacaoSchema);

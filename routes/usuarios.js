@@ -76,22 +76,28 @@ router.get('/cpf/:cpf', verificarToken, async (req, res) => {
     }
 });
 
-router.post('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
+router.post('/usuarios/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
+    const { texto, data, complemento, criadoPor } = req.body;
+
+    if (!texto || !data || !criadoPor) {
+        return res.status(400).json({ message: 'Texto, data e criadoPor são obrigatórios.' });
+    }
+
     try {
         const usuario = await Usuario.findOne({ cpf: req.params.cpf });
         if (!usuario) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
 
         const observacao = new Observacao({
-            texto: req.body.texto,
-            data: req.body.data,
-            complemento: req.body.complemento,
+            texto,
+            data,
+            complemento,
             usuarioId: usuario._id,
+            criadoPor, // Salva o campo criadoPor
         });
 
         const novaObservacao = await observacao.save();
-
         await Usuario.findByIdAndUpdate(usuario._id, {
             $push: { observacoes: novaObservacao._id },
         });
