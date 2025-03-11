@@ -76,7 +76,7 @@ router.get('/cpf/:cpf', verificarToken, async (req, res) => {
     }
 });
 
-router.post('/usuarios/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
+router.post('/cpf/:cpf/observacoes', verificarToken, async (req, res) => {
     const { texto, data, complemento, criadoPor } = req.body;
 
     if (!texto || !data || !criadoPor) {
