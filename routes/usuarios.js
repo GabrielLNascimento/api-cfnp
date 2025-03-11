@@ -9,13 +9,34 @@ const Observacao = require('../models/Observacao');
 
 // Rota de login (pública)
 router.post('/login', async (req, res) => {
-    const { senha } = req.body;
+    const { login, senha } = req.body;
 
-    if (senha === process.env.SENHA) {
-        const token = jwt.sign({}, process.env.JWT_SECRET, { expiresIn: '1h' });
-        return res.json({ token });
-    } else {
-        return res.status(401).json({ message: 'Senha incorreta' });
+    if (!login || !senha) {
+        return res
+            .status(400)
+            .json({ message: 'Login e senha são obrigatórios.' });
+    }
+
+    try {
+        // Lê o objeto de usuários do .env
+        const usuarios = JSON.parse(process.env.USUARIOS_AUTENTICACAO || '{}');
+
+        // Verifica se o login existe e se a senha está correta
+        if (usuarios[login] && usuarios[login].senha === senha) {
+            // Gera o token JWT
+            const token = jwt.sign(
+                { login, role: usuarios[login].role }, // Inclui o login e a role no payload
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            return res.status(200).json({ token });
+        } else {
+            return res.status(401).json({ message: 'Credenciais inválidas.' });
+        }
+    } catch (error) {
+        console.error('Erro no login:', error);
+        return res.status(500).json({ message: 'Erro interno no servidor.' });
     }
 });
 
@@ -166,7 +187,7 @@ router.put('/cpf/:cpf', verificarToken, async (req, res) => {
     }
 });
 
-router.put('/usuarios/:cpf/relatorio', async (req, res) => {
+router.put('/:cpf/relatorio', async (req, res) => {
     const { cpf } = req.params;
     const { relatorio } = req.body;
 
