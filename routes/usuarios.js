@@ -50,6 +50,15 @@ router.get('/', verificarToken, async (req, res) => {
     }
 });
 
+router.get('/observacoes', verificarToken, async (req, res) => {
+    try {
+        const observacoes = await Observacao.find();
+        res.json(observacoes);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.post('/', verificarToken, async (req, res) => {
     const usuario = new Usuario({
         nome: req.body.nome,
